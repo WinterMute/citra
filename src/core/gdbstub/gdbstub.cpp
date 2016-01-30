@@ -491,29 +491,29 @@ static void ReadRegisters() {
     memset(buffer, 0, sizeof(buffer));
 
     u8* bufptr = buffer;
-    for (int i = 0, reg = 0; reg <= FPSCR_REGISTER; i++, reg++) {
-        if (reg <= R15_REGISTER) {
-            IntToGdbHex(bufptr + i * CHAR_BIT, Core::g_app_core->GetReg(reg));
-        } else if (reg == CPSR_REGISTER) {
-            IntToGdbHex(bufptr + i * CHAR_BIT, Core::g_app_core->GetCPSR());
-        } else if (reg == CPSR_REGISTER - 1) {
-            // Dummy FPA register, ignore
-            IntToGdbHex(bufptr + i * CHAR_BIT, 0);
-        } else if (reg < CPSR_REGISTER) {
-            // Dummy FPA registers, ignore
-            IntToGdbHex(bufptr + i * CHAR_BIT, 0);
-            IntToGdbHex(bufptr + (i + 1) * CHAR_BIT, 0);
-            IntToGdbHex(bufptr + (i + 2) * CHAR_BIT, 0);
-            i += 2;
-        } else if (reg > CPSR_REGISTER && reg < FPSCR_REGISTER) {
-            IntToGdbHex(bufptr + i * CHAR_BIT, Core::g_app_core->GetVFPReg(reg - CPSR_REGISTER - 1));
-            IntToGdbHex(bufptr + (i + 1) * CHAR_BIT, 0);
-            i++;
-        } else if (reg == FPSCR_REGISTER) {
-            IntToGdbHex(bufptr + i * CHAR_BIT, Core::g_app_core->GetVFPSystemReg(VFP_FPSCR));
-        }
+
+    for (int reg = 0; reg <= R15_REGISTER; reg++) {
+        IntToGdbHex(bufptr + reg * CHAR_BIT, Core::g_app_core->GetReg(reg));
     }
 
+    bufptr += (16 * CHAR_BIT);
+
+    IntToGdbHex(bufptr, Core::g_app_core->GetCPSR());
+
+// Still getting "Remote 'g' packet reply is too long" from gdb with this
+// Need to figure out how to get gdb to expect vfp registers.
+
+/*
+    bufptr += CHAR_BIT;
+
+    for (int reg = 0; reg <= 31; reg++) {
+        IntToGdbHex(bufptr + reg * CHAR_BIT, Core::g_app_core->GetVFPReg(reg));
+    }
+
+    bufptr += (32 * CHAR_BIT);
+
+    IntToGdbHex(bufptr, Core::g_app_core->GetVFPSystemReg(VFP_FPSCR));
+*/
     SendReply(reinterpret_cast<char*>(buffer));
 }
 
